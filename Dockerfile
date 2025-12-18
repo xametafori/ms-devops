@@ -1,16 +1,26 @@
-FROM mcr.microsoft.com/dotnet/sdk:5.0-buster-slim AS build
+# ===== BUILD STAGE =====
+FROM maven:3.6.3-eclipse-temurin-8 AS build
 WORKDIR /app
-COPY . ./
-RUN dotnet restore
 
-COPY . ./
-RUN dotnet publish ProjectTest.API -c release -o out
+# Copiar solo pom.xml para cache de dependencias
+COPY pom.xml .
+RUN mvn -B dependency:go-offline
 
-#FROM mcr.microsoft.com/dotnet/core/aspnet:5.0
-FROM mcr.microsoft.com/dotnet/aspnet:5.0-buster-slim AS base
+# Copiar el resto del proyecto
+COPY src ./src
+
+# Compilar el proyecto y crear el JAR
+RUN mvn -B clean package -DskipTests
+
+# ===== RUNTIME STAGE =====
+FROM eclipse-temurin:8-jre-alpine
 WORKDIR /app
-COPY --from=build /app/out .
-ENV ASPNETCORE_URLS http://*:80
-ENV DOTNET_RUNNING_IN_CONTAINER true
-EXPOSE 80
-ENTRYPOINT ["dotnet", "ProjectTest.API.dll"]
+
+# Copiar el JAR generado del build stage
+COPY --from=build /app/target/*.jar app.jar
+
+# Exponer el puerto de Spring Boot
+EXPOSE 8080
+
+# Ejecutar la aplicación
+ENTRYPOINT ["java","-jar","/app/app.jar"]
