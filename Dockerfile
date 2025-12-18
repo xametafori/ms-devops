@@ -1,4 +1,3 @@
-# ===== BUILD STAGE =====
 FROM maven:3.6.3-eclipse-temurin-8 AS build
 WORKDIR /app
 
@@ -24,3 +23,4 @@ EXPOSE 8080
 
 # Ejecutar la aplicación
 ENTRYPOINT ["java","-jar","/app/app.jar"]
+
